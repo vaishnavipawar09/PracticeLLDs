@@ -82,7 +82,7 @@ class CardPayment(PaymentStrategy):
     def pay(self, amount: float):
         print(f"Paid ${amount:.2f} using Credit/Debit card")
 
-class CardPayment(PaymentStrategy):
+class UPIPayment(PaymentStrategy):
     def pay(self, amount: float):
         print(f"Paid ${amount:.2f} using UPI.")
     

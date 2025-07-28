@@ -98,6 +98,8 @@ class URLStore:
     
     def map_short_to_url(self, short_string, long_url):     #Map Short URL → Long URL
         self.short_to_url[short_string] = long_url
+        """This line inserts the mapping from the generated short code to its original long URL into our in-memory hash map, enabling O(1) lookups during URL expansion. 
+        We protect it with a lock to ensure thread‐safe writes when multiple requests occur concurrently."""
             
     def get_by_short(self, short_string):           #Get by Short URL
         return self.short_to_url.get(short_string)
@@ -115,3 +117,29 @@ class URLShortnerService:
     
     def expand(self, short_url):
         return self.store.get_by_short(short_url)
+    
+    
+def main():
+    # Initialize the URL shortening service
+    service = URLShortnerService()
+    
+    # Example long URLs to shorten
+    long_url1 = "https://www.example.com/articles/2025/07/design-patterns"
+    long_url2 = "https://openai.com/blog/chatgpt"
+    
+    # Shorten each URL
+    short1 = service.shorten(long_url1)
+    short2 = service.shorten(long_url2)
+    
+    print(f"Original: {long_url1}\nShortened: {short1}\n")
+    print(f"Original: {long_url2}\nShortened: {short2}\n")
+    
+    # Expand them back to verify
+    restored1 = service.expand(short1)
+    restored2 = service.expand(short2)
+    
+    print(f"Expanded {short1} → {restored1}")
+    print(f"Expanded {short2} → {restored2}")
+
+if __name__ == "__main__":
+    main()

@@ -156,6 +156,56 @@ class ElevatorController:
                 min_dist = dist
                 best = elevator
         return best
+    
+if __name__ == "__main__":
+    import time
+
+    # Create a controller with 3 elevators, each can queue up to 5 requests
+    controller = ElevatorController(num_elevators=3, capacity=5)
+
+    # Simulate a few hall calls
+    controller.request_elevator(source_floor=1, destination_floor=7)
+    controller.request_elevator(source_floor=3, destination_floor=10)
+    controller.request_elevator(source_floor=5, destination_floor=2)
+
+    # Let the simulation run for a bit so you can see the elevators moving
+    time.sleep(15)
+
         
-        
-        
+"""
+controller = ElevatorController(num_elevators=2, capacity=2)
+# Elevators start at floor 1, idle
+
+# 1) First request: from floor 1 → floor 5
+controller.request_elevator(1, 5)
+# └─ find_optimal_elevator scans both cars:
+#     • Car A (floor 1) → distance=0
+#     • Car B (floor 1) → distance=0
+#   it picks Car A (first min), and enqueues Request(1→5) into Car A’s queue.
+#   Car A’s worker thread wakes up, pops request, and starts moving:
+#     prints: [Elevator 1] at floor 1,2,3,4,5
+
+# 2) Shortly after, second request: from floor 3 → floor 2
+controller.request_elevator(3, 2)
+# └─ find_optimal_elevator again:
+#     • Car A is now at floor 5 → dist=|3–5|=2
+#     • Car B is still at floor 1 → dist=|3–1|=2
+#   ties go to Car A again; it enqueues Request(3→2) (capacity = 2, so OK).
+#   Car A will finish its first trip, then process the second:
+#     prints: [Elevator 1] at floor 4,3,2
+
+Meanwhile Car B’s queue is empty and remains idle.
+
+
+
+Whenever you need to always pull out the “smallest” (earliest) element, a min-heap is the right choice:
+
+O(1) peek of the next execution time: heap[0] is always the smallest timestamp.
+
+O(log n) insertion/removal: pushing a new task or popping the next‐due one costs logarithmic time—much better than a sorted list (O(n) inserts) or rescanning an unsorted list (O(n) finds).
+
+In contrast, for the per-elevator FIFO queue we used a simple Python list (appending is amortized O(1)),
+because each elevator’s capacity is small and bounded—so the occasional O(n) pop-from-front is acceptable. 
+In a high-scale system you’d swap that for collections.deque to get true O(1) pops on both ends.
+
+        """

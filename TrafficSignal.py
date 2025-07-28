@@ -80,7 +80,13 @@ class TrafficController:
                 cls._instance = super().__new__(cls)
                 cls._instance.roads = {}            #dict of roads
         return cls._instance
+    """Thread safety: multiple threads could call TrafficController() at the same time.
 
+Double-checked locking: we first check if _instance is None outside the lock (fast path), then acquire the lock and check again before creating the instance.
+
+Lock purpose: prevents two threads from both observing _instance as None and each creating a separate controller
+""" 
+    
     @classmethod
     def get_instance(cls):              #Public method to get the Singleton instance of TrafficController.
         return cls()
@@ -94,11 +100,10 @@ class TrafficController:
     def start_traffic_control(self):
         for road in self.roads.values():
             traffic_light = road.get_traffic_light()
-            threading.Thread(target=self._control_traffic_light, args=(traffic_light,), daemon=True).start()
+            threading.Thread(target=self._control_traffic_light, args=(traffic_light,), daemon=True).start()        #Threads let the main thread stay responsive.
         #Starts a background thread to simulate that light's cycle.
         #daemon=True ensures threads shut down with the main program.
-        
-         
+                
     def _control_traffic_light(self, traffic_light: TrafficLight):
         while True:
             try:
@@ -117,3 +122,66 @@ class TrafficController:
             traffic_light = road.get_traffic_light()
             traffic_light.change_signal(Signal.GREEN)
             
+
+def main():
+    """
+    Sets up a 4-way intersection with one road per direction,
+    starts the traffic control loop, and simulates an emergency.
+    """
+    # Create controller (singleton)
+    controller = TrafficController.get_instance()
+
+    # Create roads and their lights
+    north = Road("N", "North Road")
+    north.set_traffic_light(TrafficLight("TL-N", red_duration=5000, green_duration=3000, yellow_duration=1000))
+    east  = Road("E", "East Road")
+    east.set_traffic_light(TrafficLight("TL-E", red_duration=5000, green_duration=3000, yellow_duration=1000))
+    south = Road("S", "South Road")
+    south.set_traffic_light(TrafficLight("TL-S", red_duration=5000, green_duration=3000, yellow_duration=1000))
+    west  = Road("W", "West Road")
+    west.set_traffic_light(TrafficLight("TL-W", red_duration=5000, green_duration=3000, yellow_duration=1000))
+
+    # Register roads with the controller
+    for road in (north, east, south, west):
+        controller.add_road(road)
+
+    # Start the background threads that cycle the lights
+    controller.start_traffic_control()
+
+    # Let it run for a bit...
+    time.sleep(12)
+
+    # Simulate an emergency on the East Road
+    print("\n>>> Emergency detected on East Road! Forcing GREEN...\n")
+    controller.handle_emergency("E")
+
+    # Keep running so we can observe the effect
+    time.sleep(5)
+
+if __name__ == "__main__":
+    main()
+    
+    
+    """Independent Cycles
+Each road’s light needs to cycle Red→Green→Yellow on its own schedule. By spinning up one thread per TrafficLight in start_traffic_control(), each light can sleep and wake on its own timing loop.
+
+Non-blocking Main Flow
+If you tried to drive all lights in a single loop, you’d either have to interleave their sleeps (ugly) or block the main thread (so you couldn’t handle things like emergencies or add/remove roads dynamically). Threads let the main thread stay responsive.
+
+Simplicity of Simulation
+Real traffic controllers are independent hardware units. Threads give us a simple way to mimic that—each thread just runs:
+
+while True:
+  sleep(red)
+  change(GREEN)
+  sleep(green)
+  change(YELLOW)
+  sleep(yellow)
+  change(RED)
+Meanwhile, your main program can still respond to events (e.g. handle_emergency) immediately.
+
+Scalability & Extensibility
+Down the road you might add sensors or dynamic timing adjustments. With a threaded model, each light can listen for sensor updates, adjust its own timers, or be paused/stopped without rewriting a monolithic event loop.
+
+In short, threads let us model each traffic‐light’s autonomous behavior and keep the system reactive to external events (like emergencies) in a very natural, decoupled way.
+    """
