@@ -13,12 +13,12 @@
 # vehicle registration/ license tracking
 # admin functionality? 
 
-
+ 
+# VehicleType :  var, trucks, bike
+# Vehicle (ABC),different types
 # ParkingLot : one instance of parking lot exists
 # Level: level, list of parking spots
 # ParkingSpots: individual parking spot, vehicle type/ size, availability
-# Vehicle (ABC),different types 
-# VehicleType :  var, trucks, bike
 # Ticket
 # PricingStrategy
 # Gate
@@ -38,12 +38,17 @@ class Vehicle(ABC):
             
     def get_type(self) -> VehicleType:
         return self.type
-        
+"""
+Yes—both Car and Truck (and Motorcycle) extend the abstract Vehicle class, so they inherit its properties like license_plate and type without re-writing them.
+
+The call to super().__init__(…) inside each subclass’s __init__ invokes the Vehicle constructor, initializing those shared fields for you.
+Inheritance (and super) is essential for code reuse and to enforce a common interface across all vehicle types.
+
+"""       
 class Car(Vehicle):
     def __init__(self, license_plate: str):
         super().__init__(license_plate, VehicleType.CAR)
    
-        
 class Motorcycle(Vehicle):
     def __init__(self, license_plate: str):
         super().__init__(license_plate, VehicleType.MOTORCYCLE)
@@ -211,3 +216,33 @@ class ExitGate:
         ticket.spot.unpark_vehicle()
         return fee
 
+def main():
+    # Initialize the singleton ParkingLot and add two levels
+    lot = ParkingLot.get_instance()
+    level1 = Level(floor=1, num_spot=3)   # 3 car spots on level 1
+    level2 = Level(floor=2, num_spot=2)   # 2 car spots on level 2
+    lot.add_level(level1)
+    lot.add_level(level2)
+
+    # Create some vehicles
+    car1 = Car("ABC-123")
+    moto1 = Motorcycle("MOTO-456")
+    truck1 = Truck("TRK-789")
+
+    # Entry: park vehicles and issue tickets
+    entry_gate = EntryGate(lot)
+    ticket1 = entry_gate.enter_vehicle(car1)
+    ticket2 = entry_gate.enter_vehicle(moto1)
+    print("\nAfter parking two vehicles:")
+    lot.display_availability()
+
+    # Exit: calculate fee and unpark
+    exit_gate = ExitGate(DurationBasedPricing(rate_per_minute=0.10))
+    fee1 = exit_gate.exit_vehicle(ticket1)
+    print(f"\nCar1 exit fee: ${fee1:.2f}")
+
+    print("\nFinal availability:")
+    lot.display_availability()
+
+if __name__ == "__main__":
+    main()

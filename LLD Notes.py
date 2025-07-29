@@ -26,6 +26,7 @@ Behaves like a plain function scoped inside the class.
 Cannot modify object or class state.
 Useful for utility methods that logically belong to the class but don’t need its state.
 
+Why Lock?
 Thread safety: multiple threads could call TrafficController() at the same time.
 Double-checked locking: we first check if _instance is None outside the lock (fast path), then acquire the lock and check again before creating the instance.
 Lock purpose: prevents two threads from both observing _instance as None and each creating a separate controller.
